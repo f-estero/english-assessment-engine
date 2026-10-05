@@ -1,0 +1,28 @@
+#!/bin/sh
+# Pre-commit hook: blocca commit contenenti segreti o chiavi API Google Gemini.
+
+# 1. Verifica che nessun file .env reale sia presente tra i file in stage (eccetto .env.example)
+STAGED_ENV_FILES=$(git diff --cached --name-only | grep -E "(^|/)\.env($|\..*)" | grep -v "\.env\.example")
+if [ -n "$STAGED_ENV_FILES" ]; then
+    echo "" >&2
+    echo "============================================================" >&2
+    echo " [BLOCCO COMMIT] File di credenziali rilevato nello stage: " >&2
+    echo " $STAGED_ENV_FILES" >&2
+    echo " I file .env contengono segreti e non devono MAI essere committati." >&2
+    echo "============================================================" >&2
+    exit 1
+fi
+
+# 2. Scansione pattern regex per chiavi API Google Gemini (AIza...) nelle righe aggiunte (+)
+MATCHED_KEYS=$(git diff --cached -U0 | grep -v "^+++" | grep -E "^\+.*AIza[0-9A-Za-z_-]{35}")
+if [ -n "$MATCHED_KEYS" ]; then
+    echo "" >&2
+    echo "============================================================" >&2
+    echo " [BLOCCO COMMIT] Possibile chiave API Google Gemini in stage!" >&2
+    echo " Rilevato pattern corrispondente a credenziali AIza nel diff." >&2
+    echo " Verifica le modifiche e rimuovi le credenziali prima del commit." >&2
+    echo "============================================================" >&2
+    exit 1
+fi
+
+exit 0

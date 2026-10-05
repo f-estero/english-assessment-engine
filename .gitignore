@@ -1,0 +1,61 @@
+# ============================================================
+# Segreti e Credenziali
+# ============================================================
+.env
+.env.*
+!.env.example
+
+# ============================================================
+# Dati personali, lezioni e output generati
+# ============================================================
+Report/
+sessions*.jsonl
+report.json
+errori.csv
+*.csv
+
+# File audio / multimediali
+*.m4a
+*.mp3
+*.mp4
+*.wav
+*.aac
+*.ogg
+*.flac
+*.opus
+*.webm
+*.wma
+*.amr
+*.3gp
+*.mov
+*.mkv
+*.m4b
+
+# Documenti e report generati
+*.pdf
+*.html
+!templates/*.html
+*.xlsx
+~$*
+
+# ============================================================
+# Build e Cache
+# ============================================================
+build/
+dist/
+*.exe
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+ENV/
+*.egg-info/
+
+# ============================================================
+# File locali e documenti di lavoro
+# ============================================================
+.claude/settings.local.json
+docs/superpowers/

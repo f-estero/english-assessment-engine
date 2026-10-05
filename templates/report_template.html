@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Report diagnostico di conversazione — {{ data.student_name or 'Studente' }}, {{ data.session_date }}</title>
+<style>
+  :root {
+    --ink: #1F2A44;
+    --ink-soft: #55607A;
+    --paper: #FFFFFF;
+    --page: #EEF1F4;
+    --rule: #D5DCE4;
+    --pen: #C2362F;
+    --fix: #17704F;
+    --sound: #2E5AAC;
+    --serif: "Sitka Text", "Sitka Small", Georgia, "Iowan Old Style", serif;
+    --din: Bahnschrift, "DIN Alternate", "Segoe UI", "Arial Narrow", sans-serif;
+    --ipa: "Segoe UI", "Lucida Sans Unicode", "Arial Unicode MS", sans-serif;
+  }
+
+  @page { size: A4 portrait; margin: 14mm 15mm 16mm 15mm; }
+
+  * { box-sizing: border-box; }
+  html { background: var(--page); }
+  body {
+    margin: 0 auto;
+    max-width: 210mm;
+    padding: 14mm 15mm 16mm;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 10pt;
+    line-height: 1.55;
+    overflow-wrap: break-word;
+  }
+  @media print {
+    html { background: var(--paper); }
+    body { padding: 0; max-width: none; }
+  }
+
+  h1, h2, h3, .din { font-family: var(--din); font-weight: 600; letter-spacing: 0; }
+  p { margin: 0 0 6pt; }
+  .soft { color: var(--ink-soft); }
+  .small { font-size: 8.5pt; line-height: 1.45; }
+
+  /* ---------- Testata ---------- */
+  .masthead { display: grid; grid-template-columns: 1fr auto; gap: 8mm; align-items: start; }
+  .student { font-size: 26pt; line-height: 1.05; margin: 0; }
+  .lesson { font-family: var(--din); font-size: 12.5pt; margin: 3pt 0 6pt; }
+  .level {
+    font-family: var(--din); text-align: center; min-width: 30mm;
+    border: 2px solid var(--ink); padding: 5pt 9pt 6pt; border-radius: 3px;
+    box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 4px var(--ink);
+  }
+  .level b { display: block; font-size: 15pt; line-height: 1.15; }
+  .level span { font-size: 7.5pt; color: var(--ink-soft); }
+  .disclaimer-top {
+    margin-top: 8pt; padding-top: 6pt; border-top: 1.5pt solid var(--ink);
+    font-size: 8pt; color: var(--ink-soft);
+  }
+
+  /* ---------- Linea del tempo ---------- */
+  .timeline { margin: 14pt 0 6pt; break-inside: avoid; }
+  .timeline h2 { font-size: 10.5pt; margin: 0 0 6pt; }
+  .track { position: relative; height: 22pt; margin: 0 10pt; }
+  .track::before { content: ""; position: absolute; left: 0; right: 0; top: 11pt; border-top: 1.2pt solid var(--ink); }
+  .mark { position: absolute; top: 7pt; width: 8pt; height: 8pt; margin-left: -4pt; }
+  .mark.grammar { border-radius: 50%; background: var(--pen); }
+  .mark.phonetics { background: var(--sound); transform: rotate(45deg) scale(.85); }
+  .mark.lexical { width: 0; height: 0; margin-left: -5pt; background: none;
+                  border-left: 5pt solid transparent; border-right: 5pt solid transparent; border-bottom: 9pt solid var(--fix); }
+  .ends { display: flex; justify-content: space-between; font-family: var(--din); font-size: 8pt; color: var(--ink-soft); margin: 0 4pt; }
+  .key { display: flex; gap: 14pt; font-size: 8.5pt; margin-top: 4pt; color: var(--ink-soft); }
+  .key .mark { position: relative; top: 0; display: inline-block; margin: 0 4pt 0 0; vertical-align: -1pt; }
+
+  /* ---------- Sintesi e punteggi ---------- */
+  .overview { display: grid; grid-template-columns: 1.15fr 1fr; gap: 9mm; margin-top: 12pt; break-inside: avoid; }
+  .overview h2, section h2 { font-size: 13pt; margin: 0 0 6pt; }
+  .summary p { font-size: 10.5pt; line-height: 1.6; }
+  .axis { margin-bottom: 7pt; }
+  .axis-head { display: grid; grid-template-columns: 27mm 1fr 10mm; align-items: center; gap: 6pt; font-family: var(--din); }
+  .bar { height: 6pt; background: var(--page); border-radius: 3pt; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--ink); border-radius: 3pt; }
+  .axis-head b { text-align: right; font-weight: 600; }
+  .axis .small { margin: 1pt 0 0; color: var(--ink-soft); }
+
+  .prosody { display: grid; grid-template-columns: 1fr 1fr; gap: 4pt 9mm; margin-top: 12pt; break-inside: avoid; }
+  .prosody h2 { grid-column: 1 / -1; font-size: 13pt; margin: 0; }
+  .prosody dt { font-family: var(--din); font-size: 9pt; }
+  .prosody dd { margin: 0 0 4pt; font-size: 9pt; color: var(--ink-soft); }
+
+  /* ---------- Sezioni con le voci ---------- */
+  section { margin-top: 18pt; }
+  section > h2 { border-bottom: 1.2pt solid var(--ink); padding-bottom: 3pt; }
+  .shown { font-size: 8.5pt; color: var(--ink-soft); margin: 2pt 0 6pt; }
+  .entry { display: grid; grid-template-columns: 13mm 1fr; gap: 0 4mm; padding: 6pt 0; border-bottom: 0.6pt solid var(--rule); break-inside: avoid; }
+  .time { font-family: var(--din); font-size: 9pt; color: var(--ink-soft); padding-top: 2pt; font-variant-numeric: tabular-nums; }
+  .said { font-size: 11pt; line-height: 1.5; }
+  del { color: var(--pen); text-decoration: line-through; text-decoration-thickness: 1.4pt; text-decoration-color: var(--pen); }
+  ins { color: var(--fix); text-decoration: underline; text-decoration-thickness: 1.2pt; text-underline-offset: 2pt; }
+  .why { margin-top: 2pt; font-size: 8.8pt; color: var(--ink-soft); }
+  .why b { font-family: var(--din); font-weight: 600; color: var(--ink); }
+  .unsure { font-family: var(--din); font-size: 7.5pt; color: var(--pen); border: 0.6pt solid var(--pen); border-radius: 2pt; padding: 0 3pt; margin-left: 4pt; }
+  .word { font-family: var(--din); font-size: 11.5pt; }
+  .ipa { font-family: var(--ipa); }
+  .ipa.said-ipa { color: var(--pen); }
+  .ipa.target-ipa { color: var(--sound); }
+  .empty { font-style: italic; color: var(--ink-soft); }
+
+  /* ---------- Priorità e piano di studio ---------- */
+  .rule { padding: 6pt 0 6pt 9pt; border-left: 3pt solid var(--rule); margin-bottom: 6pt; break-inside: avoid; }
+  .rule.alta { border-left-color: var(--pen); }
+  .rule.media { border-left-color: var(--ink); }
+  .rule h3 { font-size: 10.5pt; margin: 0; }
+  .rule h3 small { font-weight: 400; color: var(--ink-soft); margin-left: 6pt; font-size: 8.5pt; }
+  .rule p { font-size: 9.2pt; margin: 2pt 0 0; }
+  .plan { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; }
+  .plan h3 { font-size: 10pt; margin: 0 0 4pt; }
+  .plan p { font-size: 9pt; margin-bottom: 5pt; }
+  .plan p b { font-family: var(--din); font-weight: 600; }
+
+  /* ---------- Andamento ---------- */
+  table.trend { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  .trend th { font-family: var(--din); font-weight: 600; text-align: right; border-bottom: 1pt solid var(--ink); padding: 3pt 4pt; }
+  .trend th:first-child { text-align: left; }
+  .trend td { border-bottom: 0.6pt solid var(--rule); padding: 3pt 4pt; font-variant-numeric: tabular-nums; }
+  .trend td.num { font-family: var(--din); text-align: right; }
+  .trend tr.current td { font-weight: 600; }
+  .recurring { margin-top: 6pt; font-size: 9pt; }
+
+  footer { margin-top: 18pt; padding-top: 6pt; border-top: 0.6pt solid var(--rule); font-size: 8pt; color: var(--ink-soft); }
+  footer p { margin-bottom: 3pt; }
+
+  @media (max-width: 640px) {
+    body { padding: 16px; font-size: 11pt; }
+    .masthead, .overview, .prosody, .plan { grid-template-columns: 1fr; }
+    .student { font-size: 22pt; }
+  }
+</style>
+</head>
+<body>
+{% if shown is not defined %}{% set shown = {"grammar": data.grammar_table, "phonetics": data.phonetics_table, "lexical": data.lexical_table} %}{% endif %}
+{% set tl = timeline(data) if timeline is defined else none %}
+
+<header class="masthead">
+  <div>
+    <h1 class="student">{{ data.student_name or 'Studente' }}</h1>
+    <p class="lesson">Lezione del {{ data.session_date }}</p>
+    <p class="small soft">
+      {{ data.audio_sample_duration }} di conversazione, analisi {% if data.analysis_mode == 'avanzata' %}Avanzata ({{ data.n_chunks }} spezzoni){% else %}Base (chiamata unica){% endif %}.
+      {% if data.teacher_name and data.teacher_name not in ['—', '-'] %}Docente: {{ data.teacher_name }}.{% endif %}<br>
+      Argomento: {{ data.main_topic }}. Focus: {{ data.session_focus }}.
+    </p>
+  </div>
+  <div class="level"><span>Livello stimato</span><b>{{ data.cefr_level }}</b></div>
+</header>
+<p class="disclaimer-top">Report diagnostico di conversazione. Analisi assistita da AI: non è una valutazione certificata. Le voci sono giudizi percettivi del modello, da verificare con un insegnante.</p>
+
+{% if tl and tl.points %}
+<div class="timeline">
+  <h2>Dove compaiono gli errori nella lezione</h2>
+  <div class="track">
+    {% for p in tl.points %}<span class="mark {{ p.kind }}" style="left: {{ p.pct }}%" title="{{ p.label }}"></span>{% endfor %}
+  </div>
+  <div class="ends"><span>0 min</span><span>{{ tl.minutes }} min</span></div>
+  <div class="key">
+    <span><i class="mark grammar"></i>{{ tl.counts.grammar }} grammatica</span>
+    <span><i class="mark phonetics"></i>{{ tl.counts.phonetics }} pronuncia</span>
+    <span><i class="mark lexical"></i>{{ tl.counts.lexical }} lessico</span>
+  </div>
+</div>
+{% endif %}
+
+<div class="overview">
+  <div class="summary">
+    <h2>Sintesi</h2>
+    <p>{{ data.executive_summary }}</p>
+  </div>
+  <div>
+    <h2>Punteggi su 10</h2>
+    {% for label, score, desc in [
+        ('Pronuncia', data.score_phonetics, data.desc_phonetics),
+        ('Grammatica', data.score_grammar, data.desc_grammar),
+        ('Lessico', data.score_lexicon, data.desc_lexicon),
+        ('Scorrevolezza', data.score_fluency, data.desc_fluency),
+        ('Autonomia', data.score_autonomy, data.desc_autonomy)] %}
+    <div class="axis">
+      <div class="axis-head"><span>{{ label }}</span><span class="bar"><i style="width: {{ (score * 10)|round(1) }}%"></i></span><b>{{ num(score) if num is defined else score }}</b></div>
+      <p class="small">{{ desc }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if data.prosody_and_tone %}
+<dl class="prosody">
+  <h2>Voce e ritmo</h2>
+  <div><dt>Intonazione</dt><dd>{{ data.prosody_and_tone.intonation_pattern }}</dd></div>
+  <div><dt>Ritmo</dt><dd>{{ data.prosody_and_tone.speech_rhythm }}</dd></div>
+  <div><dt>Tono e sicurezza</dt><dd>{{ data.prosody_and_tone.tone_confidence }}</dd></div>
+  <div><dt>Pause</dt><dd>{{ data.prosody_and_tone.pause_profile }}</dd></div>
+</dl>
+{% endif %}
+
+<section>
+  <h2>Grammatica</h2>
+  {% if shown.grammar|length < data.grammar_table|length %}<p class="shown">Mostrate {{ shown.grammar|length }} di {{ data.grammar_table|length }} voci, le più affidabili distribuite su tutta la lezione. Elenco completo in errori.csv.</p>{% endif %}
+  {% for item in shown.grammar %}
+  <div class="entry">
+    <div class="time">{{ item.timestamp_derived or '' }}</div>
+    <div>
+      <div class="said">{% if diff is defined %}{{ diff(item.audio_quote, item.correction) }}{% else %}<del>{{ item.audio_quote }}</del> <ins>{{ item.correction }}</ins>{% endif %}{% if item.llm_confidence < 0.7 %}<span class="unsure">incerta</span>{% endif %}</div>
+      <div class="why"><b>{{ item.error_type }}.</b> {{ item.l1_interference }} {{ item.rule_and_example }}</div>
+    </div>
+  </div>
+  {% else %}
+  <p class="empty">Nessun errore di grammatica rilevato in questa lezione.</p>
+  {% endfor %}
+</section>
+
+<section>
+  <h2>Pronuncia</h2>
+  {% if shown.phonetics|length < data.phonetics_table|length %}<p class="shown">Mostrate {{ shown.phonetics|length }} di {{ data.phonetics_table|length }} voci, le più affidabili distribuite su tutta la lezione. Elenco completo in errori.csv.</p>{% endif %}
+  {% for item in shown.phonetics %}
+  <div class="entry">
+    <div class="time">{{ item.timestamp_derived or '' }}</div>
+    <div>
+      <div class="said"><span class="word">{{ item.term }}</span>
+        detto <span class="ipa said-ipa">{{ item.perceived_ipa }}</span>{% if item.target_ipa and item.target_ipa != 'N/D' %}, atteso <span class="ipa target-ipa">{{ item.target_ipa }}</span>{% endif %}{% if item.llm_confidence < 0.7 %}<span class="unsure">incerta</span>{% endif %}</div>
+      <div class="why"><b>{{ item.category }}.</b>{% if item.stress_displacement and item.stress_displacement != 'Standard' %} {{ item.stress_displacement }}.{% endif %} Esercizio: {{ item.practical_drill }}</div>
+    </div>
+  </div>
+  {% else %}
+  <p class="empty">Nessuna imprecisione di pronuncia rilevata in questa lezione.</p>
+  {% endfor %}
+</section>
+
+<section>
+  <h2>Lessico</h2>
+  {% if shown.lexical|length < data.lexical_table|length %}<p class="shown">Mostrate {{ shown.lexical|length }} di {{ data.lexical_table|length }} voci, le più affidabili distribuite su tutta la lezione. Elenco completo in errori.csv.</p>{% endif %}
+  {% for item in shown.lexical %}
+  <div class="entry">
+    <div class="time">{{ item.timestamp_derived or '' }}</div>
+    <div>
+      <div class="said"><del>{{ item.used_term }}</del> <ins>{{ item.target_term }}</ins></div>
+      <div class="why"><b>{{ item.calque_or_error }}</b> Registro {{ item.language_register|lower }}. {{ item.context_note }}</div>
+    </div>
+  </div>
+  {% else %}
+  <p class="empty">Nessun calco lessicale rilevato in questa lezione.</p>
+  {% endfor %}
+</section>
+
+{% if data.critical_matrix %}
+<section>
+  <h2>Su cosa lavorare per primo</h2>
+  {% for item in data.critical_matrix %}
+  <div class="rule {{ item.priority|lower }}">
+    <h3>{{ item.title }}<small>priorità {{ item.priority|lower }}</small></h3>
+    <p>{{ item.description }}</p>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if data.protocol_notes %}
+<section>
+  <h2>Piano di studio</h2>
+  <div class="plan">
+    {% for cat in ['Punto di Forza', 'Azione Correttiva', 'Obiettivo Prossima Sessione'] %}
+    {% set notes = data.protocol_notes|selectattr('category', 'equalto', cat)|list %}
+    <div>
+      <h3>{{ {'Punto di Forza': 'Punti di forza', 'Azione Correttiva': 'Da correggere', 'Obiettivo Prossima Sessione': 'Per la prossima lezione'}[cat] }}</h3>
+      {% for n in notes %}<p><b>{{ n.title }}.</b> {{ n.details }}</p>{% else %}<p class="soft">—</p>{% endfor %}
+    </div>
+    {% endfor %}
+    {% set others = data.protocol_notes|rejectattr('category', 'in', ['Punto di Forza', 'Azione Correttiva', 'Obiettivo Prossima Sessione'])|list %}
+    {% if others %}<div style="grid-column: 1 / -1">{% for n in others %}<p><b>{{ n.title }}.</b> {{ n.details }}</p>{% endfor %}</div>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if session_summary and session_summary.scores_history|length > 1 %}
+<section>
+  <h2>Andamento nelle ultime lezioni</h2>
+  <table class="trend">
+    <thead><tr><th>Lezione</th><th>Media</th><th>Pronuncia</th><th>Grammatica</th><th>Lessico</th><th>Scorrevolezza</th><th>Autonomia</th></tr></thead>
+    <tbody>
+    {% for s in session_summary.scores_history %}
+    <tr class="{{ 'current' if loop.last }}">
+      <td>{{ s.date }}</td>
+      {% for v in [s.weighted, s.phonetics, s.grammar, s.lexicon, s.fluency, s.autonomy] %}<td class="num">{{ num(v) if num is defined else v }}</td>{% endfor %}
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if session_summary.delta %}
+  <p class="small soft" style="margin-top:4pt">Media rispetto alla lezione precedente: {{ signed(session_summary.delta.weighted) if signed is defined else session_summary.delta.weighted }}. Totale lezioni registrate: {{ session_summary.total_sessions }}.</p>
+  {% endif %}
+  {% if session_summary.recurring_errors %}
+  <p class="recurring"><b class="din">Errori che tornano dalle lezioni precedenti:</b> {{ session_summary.recurring_errors|join(', ') }}.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<footer>
+  {% if data.validation_stats %}
+  <p>Controllo automatico: {{ data.validation_stats.total_proposed }} voci proposte dal modello, {{ data.validation_stats.total_validated }} tenute, {{ data.validation_stats.total_discarded }} scartate (doppioni o correzioni identiche alla frase detta). {{ data.validation_stats.validation_note }}</p>
+  {% endif %}
+  <p>Le voci segnate "incerta" hanno una confidenza dichiarata dal modello inferiore al 70%. Le trascrizioni IPA attese vengono da un dizionario offline; quelle "dette" sono percepite dal modello. Questo report non sostituisce una valutazione formale.</p>
+</footer>
+
+</body>
+</html>
